@@ -46,11 +46,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class MyLRUCache<K, V> {
 
-    // Inner node class for the doubly linked list.
-    // Each node holds a key-value pair + pointers to its neighbors.
-    //
-    // WHY store the key inside the node?
-    // When we evict from TAIL, we need to remove it from the HashMap too.
+   
+ 
     // Without the key here we'd have to scan the map to find it — O(n).
     // Storing the key means eviction stays O(1).
     private static class Node<K, V> {
@@ -68,16 +65,9 @@ public class MyLRUCache<K, V> {
     private final int capacity;
     private final Map<K, Node<K, V>> map;
 
-    // Sentinel (dummy) nodes for head and tail.
-    //
-    // WHY dummy nodes? They simplify the linked list operations a lot.
-    // Without them, insert/remove near the edges needs special cases:
-    //   "is this the first node?", "is this the last node?" etc.
-    // With sentinels, head.next is always the most-recent real node
     // and tail.prev is always the least-recent. Zero edge cases to handle.
-    private final Node<K, V> head; // dummy — marks the most-recently-used end
-    private final Node<K, V> tail; // dummy — marks the least-recently-used end
-
+    private final Node<K, V> head; 
+    private final Node<K, V> tail; 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     public MyLRUCache(int capacity) {
@@ -95,11 +85,7 @@ public class MyLRUCache<K, V> {
         tail.prev = head;
     }
 
-    // Get a value by key. Returns null on cache miss.
-    //
-    // LEARN: every successful get moves that node to HEAD.
-    // That's the whole point of LRU — recently accessed items stay near the front,
-    // untouched items drift toward the tail and get evicted first.
+    
     public V get(K key) {
         lock.writeLock().lock();
         try {
@@ -145,8 +131,7 @@ public class MyLRUCache<K, V> {
         }
     }
 
-    // Current number of entries.
-    // Read lock is enough here — we're only reading map.size(), not touching the list.
+  
     public int size() {
         lock.readLock().lock();
         try {
@@ -158,7 +143,7 @@ public class MyLRUCache<K, V> {
 
     // --- linked list helpers (all called inside a lock, so no extra sync needed) ---
 
-    // Insert a node right after the dummy head (most-recently-used position).
+  
     private void addToHead(Node<K, V> node) {
         node.prev      = head;
         node.next      = head.next;
@@ -166,19 +151,18 @@ public class MyLRUCache<K, V> {
         head.next      = node;
     }
 
-    // Unlink a node from wherever it sits in the list.
+   
     private void removeNode(Node<K, V> node) {
         node.prev.next = node.next;
         node.next.prev = node.prev;
     }
 
-    // Move an existing node to head (mark as most recently used).
+   
     private void moveToHead(Node<K, V> node) {
         removeNode(node);
         addToHead(node);
     }
 
-    // Remove and return the node just before the dummy tail (the LRU node).
     private Node<K, V> removeTail() {
         Node<K, V> lru = tail.prev;
         removeNode(lru);
